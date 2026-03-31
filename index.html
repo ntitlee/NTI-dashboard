@@ -179,24 +179,47 @@ if (agData?.Slots) {
     }).join("");
 }
 
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="img-container">
-                        <img src="${pData?.CharacterImage}" class="char-img">
-                        <div class="char-overlay">
-                            <div class="name">${char.CharacterName} <span style="font-size:0.8rem; opacity:0.8;">${char.CharacterClassName}</span></div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-section">
-                            <div class="data-row"><span class="label">아이템레벨</span> <b style="color:var(--primary)">${char.ItemAvgLevel}</b></div>
-                            <div class="data-row"><span class="label">보석가치</span> <span class="gem-tag">💎 ${gemScore.toFixed(1)}</span></div>
-                            <div class="data-row"><span class="label">아크패시브</span> <span>${apHtml}</span></div>
-                            <div class="data-row"><span class="label">아크그리드</span> <div style="display:flex; flex-wrap:wrap; gap:2px;">${agHtml}</div></div>
-                        </div>
-                    </div>
-                `;
+// 카드 생성 및 HTML 구성
+const card = document.createElement('div');
+card.className = 'card';
+card.innerHTML = `
+    <div class="img-container">
+        <img src="${pData?.CharacterImage}" class="char-img" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+        <div class="char-overlay">
+            <div class="name">${char.CharacterName} 
+                <span style="font-size:0.8rem; opacity:0.8; font-weight:normal;">${char.CharacterClassName}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body" style="padding: 15px;">
+        <div class="info-section">
+            <div class="data-row" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:8px;">
+                <span class="label" style="color:#888; font-weight:600;">아이템레벨</span> 
+                <b style="color:#4285f4; font-size:1.1rem;">${char.ItemAvgLevel}</b>
+            </div>
+
+            <div class="data-row" style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                <div class="label" style="color:#888; font-weight:600; margin-bottom:6px;">💎 보석 현황</div>
+                <div style="font-size:0.85rem; font-weight:700; color:#444; line-height:1.5; word-break:keep-all;">
+                    ${gemSummary}
+                </div>
+            </div>
+
+            <div class="data-row" style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                <span class="label" style="color:#888; font-weight:600;">아크패시브</span>
+                <div style="font-size:0.85rem; margin-top:4px;">${apHtml}</div>
+            </div>
+
+            <div class="data-row" style="padding-top:10px;">
+                <div class="label" style="color:#888; font-weight:600; margin-bottom:8px;">🧩 아크그리드</div>
+                <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    ${agHtml}
+                </div>
+            </div>
+        </div>
+    </div>
+`;
                 grid.appendChild(card);
             }
         } catch (e) { grid.innerHTML = "에러 발생"; }
