@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>LOA NTI Dashboard - True Async</title>
+    <title>LOA NTI Dashboard - Ultra Fast</title>
     <style>
         :root { 
             --bg: #121212; --card-bg: #1e1e1e; --border: #333;
@@ -11,45 +11,46 @@
         body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
         .container { max-width: 1850px; margin: 0 auto; }
         .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 20px; gap: 5px; }
-        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #2a2a2a; color: #888; border-radius: 8px 8px 0 0; font-weight: 700; transition: 0.3s; }
+        .tab-btn { padding: 12px 25px; cursor: pointer; border: none; background: #2a2a2a; color: #888; border-radius: 8px 8px 0 0; font-weight: 700; transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; }
         
         .list-header, .list-row { display: grid; grid-template-columns: 180px 100px 100px 140px 180px 280px 250px 1fr; gap: 12px; align-items: center; text-align: center; font-size: 0.85rem; }
         .list-header { background: #252525; padding: 12px; font-weight: 800; border-bottom: 2px solid var(--border); }
         .list-row { background: var(--card-bg); padding: 15px 12px; border-bottom: 1px solid var(--border); min-height: 80px; }
         
-        .char-name { font-weight: 800; color: #fff; }
+        .char-name { font-weight: 800; color: #fff; font-size: 1rem; }
         .gem-box { position: relative; text-align: left; display: flex; flex-direction: column; }
-        .gem-text { font-size: 0.8rem; color: #aaa; line-height: 1.4; padding-bottom: 15px; }
+        .gem-text { font-size: 0.8rem; color: #aaa; line-height: 1.4; padding-bottom: 15px; min-height: 30px; }
         .gold-text { position: absolute; bottom: -5px; right: 0; color: #ffcc00; font-size: 0.95rem; font-weight: 800; }
         
-        /* 로딩 상태 애니메이션 */
-        .loading-text { color: #555; font-size: 0.75rem; font-style: italic; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        .loading-dot { color: #555; font-size: 0.75rem; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color: #fff; margin-bottom: 25px;">📊 LOA NTI Dashboard <span style="font-size: 1rem; color: #666;">(Instant Rendering)</span></h1>
+    <h1 style="color: #fff; margin-bottom: 25px;">📊 LOA NTI Dashboard <span style="font-size: 0.9rem; color: #666;">(Origin Value Focus)</span></h1>
     <div class="tabs" id="tabMenu"></div>
     <div id="tabContents"></div>
 </div>
 
 <script>
     const MEMBERS = { "기태": "로우프", "동근": "저녁별빛", "민구": "그저애송이", "민기": "minki", "석준": "famousamos", "준영": "DD키리", "찬엽": "탑소라카" };
-    const API_KEY = "Bearer YOUR_API_KEY"; 
+    // 발급받으신 API KEY를 여기에 꼭 넣어주세요!
+    const API_KEY = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyIsImtpZCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyJ9.eyJpc3MiOiJodHRwczovL2x1ZHkuZ2FtZS5vbnN0b3ZlLmNvbSIsImF1ZCI6Imh0dHBzOi8vbHVkeS5nYW1lLm9uc3RvdmUuY29tL3Jlc291cmNlcyIsImNsaWVudF9pZCI6IjEwMDAwMDAwMDA1OTA2ODYifQ.oGh7TNKFkdANL7nZJbKMAqjmQBO_EauyWaRDuq0QJQ2l0sABfpTTKvYEdkixZ8hZqW5iVN_mDIsYdI6pcnIJ-w3j7EFTI8GKdUNo-QVn412LALUhx_gXd-a2WekBYtDgjZAaAfmjqal63JjfoXdJYz5mNRZX9bqkcpuX7gkSDU9bi7Bvik4gmT4kEt6WJ1sOnch8Bbi3bDGLUoXEbRjWiebszAdo2qmsg6sXu3Ah26PhMsosIzkPaW0y5wBDnSOQtt2N4sEFNO0jiwzfaygOO4pu6jQFzTsUjL4xNBKtqpB1HS5gpxadAwJD1umBEMaF-BQZEu3pdu9Ja8MvDpqfUg"; 
     const BASE_URL = "https://developer-lostark.game.onstove.com";
 
     let globalPrices = {}; 
     let priceStatus = "pending"; 
 
-    // 시세는 페이지 로드 직후부터 백그라운드에서 조용히 시작
+    // 시세는 페이지 열리자마자 백그라운드 가동
     async function backgroundPriceSync() {
         if (priceStatus !== "pending") return;
         priceStatus = "loading";
         const levels = [6, 7, 8, 9, 10];
         const headers = { "accept": "application/json", "Authorization": API_KEY, "Content-Type": "application/json" };
+        
         for (const level of levels) {
             for (const type of ["겁화", "작열"]) {
                 try {
@@ -58,17 +59,18 @@
                         body: JSON.stringify({ "CategoryCode": 210000, "ItemTier": 4, "ItemName": `${level}레벨 ${type}의 보석`, "PageNo": 1, "Sort": "BUY_PRICE" })
                     });
                     const data = await res.json();
-                    if (data.Items?.length > 0) {
-                        const best = data.Items.find(i => i.AuctionInfo?.BuyPrice > 0);
+                    if (data.Items && data.Items.length > 0) {
+                        const best = data.Items.find(i => i.AuctionInfo && i.AuctionInfo.BuyPrice > 0);
                         if (best) globalPrices[`${level}레벨 ${type}`] = best.AuctionInfo.BuyPrice;
                     }
-                } catch (e) {}
-                await new Promise(r => setTimeout(r, 100)); // API 제한 방지
+                } catch (e) { console.error(e); }
+                await new Promise(r => setTimeout(r, 150));
             }
         }
         priceStatus = "done";
     }
 
+    // 보석 태생 판별 (툴팁 텍스트 우선)
     function getGemOriginType(gem) {
         const tooltip = gem.Tooltip || "";
         if (tooltip.includes("겁화")) return "겁화";
@@ -76,54 +78,56 @@
         return null;
     }
 
-    // [개선] 탭 클릭 시 즉시 실행되는 함수
+    // 탭 클릭 시 즉시 실행
     async function openTab(evt, tabName) {
-        // UI 즉시 전환
         document.querySelectorAll(".content").forEach(c => c.style.display = "none");
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         document.getElementById(tabName).style.display = "block";
         evt.currentTarget.classList.add("active");
 
         const listContainer = document.getElementById(`list-${tabName}`);
-        
-        // 이미 로딩된 적이 있다면 다시 그리지 않음 (선택 사항)
-        if (listContainer.innerHTML !== "") return;
+        if (listContainer.innerHTML !== "") return; // 이미 데이터가 있으면 스킵
 
-        // 1. 캐릭터 목록 기초 데이터만 먼저 가져옴 (매우 빠름)
         const headers = { "accept": "application/json", "Authorization": API_KEY };
-        const sibRes = await fetch(`${BASE_URL}/characters/${encodeURIComponent(MEMBERS[tabName])}/siblings`, { headers });
-        const siblings = await sibRes.json();
-        const targets = siblings.filter(c => parseFloat(c.ItemAvgLevel.replace(/,/g, "")) >= 1640);
+        
+        try {
+            // 1. 캐릭터 목록 가져오기
+            const sibRes = await fetch(`${BASE_URL}/characters/${encodeURIComponent(MEMBERS[tabName])}/siblings`, { headers });
+            const siblings = await sibRes.json();
+            const targets = siblings.filter(c => parseFloat(c.ItemAvgLevel.replace(/,/g, "")) >= 1640);
 
-        // 2. 탭을 누르자마자 리스트 뼈대를 즉시 생성 (이름, 서버, 레벨은 바로 보임)
-        listContainer.innerHTML = "";
-        targets.forEach(char => {
-            const charId = (tabName + char.CharacterName).replace(/\s/g, '');
-            const row = document.createElement('div');
-            row.className = 'list-row';
-            row.innerHTML = `
-                <div class="char-info"><span class="char-name">${char.CharacterName}</span></div>
-                <div>${char.ServerName}</div><div>${char.ItemAvgLevel}</div>
-                <div id="cp-${charId}" class="loading-text">...</div>
-                <div id="db-cp-${charId}" class="loading-text">...</div>
-                <div id="ap-${charId}" class="loading-text">...</div>
-                <div id="ag-${charId}" class="loading-text">...</div>
-                <div class="gem-box">
-                    <div id="gem-txt-${charId}" class="gem-text"><span class="loading-text">보석 분석 중...</span></div>
-                    <div id="gem-gold-${charId}" class="gold-text">0 G</div>
-                </div>
-            `;
-            listContainer.appendChild(row);
-
-            // 3. 나머지 무거운 데이터(상세정보, 보석)는 개별적으로 비동기 호출
-            loadIndividualDetails(char.CharacterName, charId);
-        });
+            // 2. 즉시 리스트 뼈대 생성 (이름, 서버, 레벨 즉시 표시)
+            listContainer.innerHTML = "";
+            targets.forEach(char => {
+                const charId = (tabName + char.CharacterName).replace(/\s/g, '');
+                const row = document.createElement('div');
+                row.className = 'list-row';
+                row.innerHTML = `
+                    <div class="char-info"><span class="char-name">${char.CharacterName}</span></div>
+                    <div>${char.ServerName}</div><div style="font-weight:700;">${char.ItemAvgLevel}</div>
+                    <div id="cp-${charId}" class="loading-dot">...</div>
+                    <div id="db-cp-${charId}" class="loading-dot">...</div>
+                    <div id="ap-${charId}" class="loading-dot">...</div>
+                    <div id="ag-${charId}" class="loading-dot">...</div>
+                    <div class="gem-box">
+                        <div id="gem-txt-${charId}" class="gem-text"><span class="loading-dot">로딩 중..</span></div>
+                        <div id="gem-gold-${charId}" class="gold-text">0 G</div>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+                
+                // 3. 무거운 데이터 개별 비동기 호출
+                loadCharDetails(char.CharacterName, charId);
+            });
+        } catch (e) {
+            listContainer.innerHTML = `<div style="color:red; padding:20px;">데이터를 불러오는 중 오류가 발생했습니다. (API 키 확인 필요)</div>`;
+        }
     }
 
-    async function loadIndividualDetails(charName, charId) {
+    async function loadCharDetails(charName, charId) {
         const headers = { "accept": "application/json", "Authorization": API_KEY };
         try {
-            // 상세 정보와 보석 정보를 동시에 요청
+            // 상세정보와 보석 정보를 병렬로 가져옴
             const [pRes, gRes] = await Promise.all([
                 fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(charName)}/profiles`, { headers }),
                 fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(charName)}/gems`, { headers })
@@ -132,46 +136,53 @@
             const pData = await pRes.json();
             const gData = await gRes.json();
 
-            // 프로필 정보 즉시 업데이트
-            document.getElementById(`cp-${charId}`).innerText = (pData?.CombatPower || 0).toLocaleString();
-            document.getElementById(`cp-${charId}`).classList.remove('loading-text');
+            // 프로필 정보 업데이트
+            const cpEl = document.getElementById(`cp-${charId}`);
+            if (cpEl) {
+                cpEl.innerText = (pData?.CombatPower || 0).toLocaleString();
+                cpEl.classList.remove('loading-dot');
+            }
 
-            // 보석 계산 시작
-            updateGemUI(gData, charId);
-        } catch (e) { console.error(charName, e); }
-    }
-
-    function updateGemUI(gData, charId) {
-        if (!gData?.Gems) { document.getElementById(`gem-txt-${charId}`).innerText = "없음"; return; }
-        
-        const calc = () => {
-            let totalGold = 0;
-            const gemMap = {};
-
-            gData.Gems.forEach(g => {
-                const originType = getGemOriginType(g);
-                const isBind = g.Name.includes("귀속");
-                const isGwanghwi = g.Name.includes("광휘");
-
-                if (originType && globalPrices[`${g.Level}레벨 ${originType}`]) {
-                    if (isGwanghwi || !isBind) {
-                        totalGold += globalPrices[`${g.Level}레벨 ${originType}`];
-                    }
+            // 보석 UI 업데이트 (시세 미완료 시 재시도 포함)
+            const calcGems = () => {
+                if (!gData?.Gems) {
+                    document.getElementById(`gem-txt-${charId}`).innerText = "정보 없음";
+                    return;
                 }
 
-                let dName = g.Name.replace(/\(귀속\)/g, "").trim();
-                if (isGwanghwi) dName = `${g.Level}레벨 광휘(${originType === "겁화" ? "태생:겁" : "태생:작"})`;
-                const key = `${dName}${isBind ? "(귀)" : ""}`;
-                gemMap[key] = (gemMap[key] || 0) + 1;
-            });
+                let totalGold = 0;
+                let gemMap = {};
 
-            document.getElementById(`gem-txt-${charId}`).innerText = Object.entries(gemMap).map(([n, c]) => `${n} ${c}개`).join(", ");
-            document.getElementById(`gem-gold-${charId}`).innerText = totalGold.toLocaleString() + " G";
+                gData.Gems.forEach(g => {
+                    const origin = getGemOriginType(g);
+                    const isGwanghwi = g.Name.includes("광휘");
+                    const isBind = g.Name.includes("귀속");
 
-            // 시세가 아직 안 들어왔으면 1.5초 후 재시도 (숫자만 바뀜)
-            if (totalGold === 0 && priceStatus !== "done") setTimeout(calc, 1500);
-        };
-        calc();
+                    // 가치 합산 (4티어 거래가능 혹은 광휘)
+                    if (origin && globalPrices[`${g.Level}레벨 ${origin}`]) {
+                        if (isGwanghwi || !isBind) {
+                            totalGold += globalPrices[`${g.Level}레벨 ${origin}`];
+                        }
+                    }
+
+                    // 이름 표시
+                    let dName = g.Name.replace(/\(귀속\)/g, "").trim();
+                    if (isGwanghwi) dName = `${g.Level}레벨 광휘(${origin === "겁화" ? "태생:겁" : "태생:작"})`;
+                    const key = `${dName}${isBind ? "(귀)" : ""}`;
+                    gemMap[key] = (gemMap[key] || 0) + 1;
+                });
+
+                document.getElementById(`gem-txt-${charId}`).innerText = Object.entries(gemMap)
+                    .sort((a,b) => parseInt(b[0]) - parseInt(a[0]))
+                    .map(([n, c]) => `${n} ${c}개`).join(", ");
+                document.getElementById(`gem-gold-${charId}`).innerText = totalGold.toLocaleString() + " G";
+
+                // 시세가 아직 안 들어왔으면 계속 시도
+                if (totalGold === 0 && priceStatus !== "done") setTimeout(calcGems, 2000);
+            };
+            calcGems();
+
+        } catch (e) { console.error(charName, e); }
     }
 
     function init() {
@@ -185,7 +196,7 @@
             content.innerHTML = `<div class="list-header"><div>캐릭터</div><div>서버</div><div>레벨</div><div>전투력</div><div>최대 전투력</div><div>패시브</div><div>그리드</div><div>보석 현황</div></div><div id="list-${name}"></div>`;
             container.appendChild(content);
         });
-        backgroundPriceSync(); // 시작하자마자 시세 조회 가동
+        backgroundPriceSync();
     }
     window.onload = init;
 </script>
