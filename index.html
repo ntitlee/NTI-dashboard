@@ -2,44 +2,46 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>LOA NTI Dashboard - Dark Mode</title>
+    <title>LOA NTI Dashboard - Professional</title>
     <style>
         :root { 
             --bg: #121212; --card-bg: #1e1e1e; --border: #333;
             --text: #e0e0e0; --primary: #4285f4;
-            /* 등급별 색상 (다크모드 최적화) */
-            --grade-ancient: #f8f9fa; /* 고대: 상아색/흰색 */
+            /* 등급별 색상 (살색=상아색 계열로 조정) */
+            --grade-ancient: #FFE4C4; /* 고대: Bisque(살색/상아색) */
             --grade-relic: #ff4d4f;   /* 유물: 다홍색 */
             --grade-legend: #ffc107;  /* 전설: 귤색 */
             --grade-epic: #a29bfe;    /* 영웅: 보라색 */
             --grade-default: #00b4d8; /* 일반: 파랑색 */
+            /* 아크패시브 명칭 색상 */
+            --ap-jin: #FFDAB9;  /* 진화: 살색(PeachPuff) */
+            --ap-kkae: #4da3ff; /* 깨달음: 파란색 */
+            --ap-do: #52c41a;   /* 도약: 초록색 */
+            --danger: #ff4d4f;  /* 6R 미만 강조색 */
         }
         body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
-        .container { max-width: 1600px; margin: 0 auto; }
+        .container { max-width: 1700px; margin: 0 auto; }
         
-        /* 탭 디자인 */
         .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 20px; gap: 5px; }
         .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #2a2a2a; color: #888; border-radius: 8px 8px 0 0; font-weight: 700; transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; }
 
-        /* 리스트 레이아웃 (엑셀 스타일) */
-        .list-header { display: grid; grid-template-columns: 180px 120px 100px 280px 280px 1fr; background: #252525; padding: 12px; font-weight: 800; border-bottom: 2px solid var(--border); font-size: 0.9rem; text-align: center; }
-        .list-row { display: grid; grid-template-columns: 180px 120px 100px 280px 280px 1fr; background: var(--card-bg); padding: 15px 12px; border-bottom: 1px solid var(--border); align-items: center; text-align: center; font-size: 0.85rem; }
+        /* 리스트 레이아웃 조정 (순서: 캐릭터-서버-레벨-아크패시브-아크그리드-보석) */
+        .list-header { display: grid; grid-template-columns: 180px 100px 100px 320px 300px 1fr; background: #252525; padding: 12px; font-weight: 800; border-bottom: 2px solid var(--border); font-size: 0.9rem; text-align: center; }
+        .list-row { display: grid; grid-template-columns: 180px 100px 100px 320px 300px 1fr; background: var(--card-bg); padding: 15px 12px; border-bottom: 1px solid var(--border); align-items: center; text-align: center; font-size: 0.85rem; }
         .list-row:hover { background: #2a2a2a; }
 
-        /* 데이터 정렬 및 스타일 */
         .char-info { text-align: left; padding-left: 10px; }
         .char-name { font-weight: 800; color: #fff; display: block; }
-        .char-class { font-size: 0.75rem; color: #888; }
         .level { font-weight: 800; color: var(--primary); }
-        .gem-box, .ap-box, .ag-box { text-align: left; padding: 0 10px; line-height: 1.5; }
         
-        /* 아크그리드 슬롯 스타일 (배경 제거) */
-        .ag-slot { display: inline-flex; align-items: center; margin-right: 10px; }
-        .ag-icon { width: 16px; height: 16px; margin-right: 4px; }
-        .ag-point { font-weight: 800; }
+        .ap-box, .ag-box, .gem-box { text-align: left; padding: 0 10px; }
+        .gem-text { font-size: 0.8rem; line-height: 1.4; color: #bbb; }
 
-        .loading { text-align: center; padding: 50px; color: #666; }
+        /* 아크그리드 스타일 */
+        .ag-group { margin-bottom: 5px; display: block; border-bottom: 1px hidden #333; }
+        .ag-slot { display: inline-flex; align-items: center; margin-right: 12px; }
+        .ag-icon { width: 16px; height: 16px; margin-right: 4px; border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -69,7 +71,7 @@
             content.style.display = "none";
             content.innerHTML = `
                 <div class="list-header">
-                    <div>캐릭터</div><div>서버</div><div>레벨</div><div>보석 현황</div><div>아크패시브</div><div>아크그리드</div>
+                    <div>캐릭터</div><div>서버</div><div>레벨</div><div>아크패시브</div><div>아크그리드</div><div>보석 현황</div>
                 </div>
                 <div id="list-${name}"></div>`;
             container.appendChild(content);
@@ -106,51 +108,67 @@
                 const agData = await agRes.json();
                 const gData = await gRes.json();
 
-                // 1. 보석 (아이콘 제거, 텍스트만)
-                let gemSummary = "없음";
-                if (gData?.Gems) {
-                    const gemMap = {};
-                    gData.Gems.forEach(g => {
-                        let type = g.Name.includes("겁화") ? "겁화" : g.Name.includes("작열") ? "작열" : g.Name.includes("멸화") ? "멸화" : g.Name.includes("홍염") ? "홍염" : "보석";
-                        const key = `${g.Level}레벨 ${type}`;
-                        gemMap[key] = (gemMap[key] || 0) + 1;
-                    });
-                    gemSummary = Object.entries(gemMap).sort((a,b) => parseInt(b[0]) - parseInt(a[0])).map(([n, c]) => `${n} ${c}개`).join("<br>");
-                }
-
-                // 2. 아크패시브 (오타 수정: 진화, 깨달음, 도약)
+                // 1. 아크패시브 (색상 지정 및 6R 미만 강조)
                 let apHtml = "비활성화";
                 if (apData?.Points) {
                     apHtml = apData.Points.map(p => {
-                        let fName = p.Name.startsWith("진") ? "진화" : p.Name.startsWith("깨") ? "깨달음" : "도약";
-                        const r = (p.Description || "").match(/(\d+)랭크/)?.[1] || 0;
-                        return `${fName} ${r}R`;
-                    }).join("<br>");
+                        let fName = "진화"; let fColor = "var(--ap-jin)";
+                        if (p.Name.startsWith("깨")) { fName = "깨달음"; fColor = "var(--ap-kkae)"; }
+                        else if (p.Name.startsWith("도")) { fName = "도약"; fColor = "var(--ap-do)"; }
+
+                        const rank = parseInt((p.Description || "").match(/(\d+)랭크/)?.[1] || 0);
+                        let rankStyle = rank < 6 ? `color:var(--danger); font-weight:900;` : `color:var(--text);`;
+                        
+                        return `<span style="color:${fColor}">${fName}</span> <span style="${rankStyle}">${rank}R</span>`;
+                    }).join(" / ");
                 }
 
-                // 3. 아크그리드 (배경 제거, 아이콘+등급색상 텍스트)
-                let agHtml = "미설정";
+                // 2. 아크그리드 (질서/혼돈 줄바꿈 및 상아색 적용)
+                let agOrder = []; let agChaos = [];
                 if (agData?.Slots) {
-                    agHtml = agData.Slots.map(s => {
+                    agData.Slots.forEach(s => {
                         let fColor = 'var(--grade-default)';
                         if (s.Grade === "고대") fColor = 'var(--grade-ancient)';
                         else if (s.Grade === "유물") fColor = 'var(--grade-relic)';
                         else if (s.Grade === "전설") fColor = 'var(--grade-legend)';
                         else if (s.Grade === "영웅") fColor = 'var(--grade-epic)';
                         
-                        return `<div class="ag-slot"><img src="${s.Icon}" class="ag-icon"><span class="ag-point" style="color:${fColor}">${s.Point}P</span></div>`;
-                    }).join("");
+                        const slotHtml = `<div class="ag-slot"><img src="${s.Icon}" class="ag-icon"><span style="color:${fColor}; font-weight:800;">${s.Point}P</span></div>`;
+                        if (s.Name.includes("혼돈")) agChaos.push(slotHtml); else agOrder.push(slotHtml);
+                    });
+                }
+                const agHtml = `
+                    <div class="ag-group">${agOrder.join("")}</div>
+                    <div class="ag-group">${agChaos.join("")}</div>
+                `;
+
+                // 3. 보석 (6레벨 광휘 표기 수정 및 위치 이동)
+                let gemSummary = "없음";
+                if (gData?.Gems) {
+                    const gemMap = {};
+                    gData.Gems.forEach(g => {
+                        let type = "";
+                        if (g.Name.includes("겁화")) type = "겁화";
+                        else if (g.Name.includes("작열")) type = "작열";
+                        else if (g.Name.includes("광휘")) type = "광휘";
+                        else if (g.Name.includes("멸화")) type = "멸화";
+                        else if (g.Name.includes("홍염")) type = "홍염";
+                        
+                        const key = `${g.Level}레벨 ${type}`;
+                        gemMap[key] = (gemMap[key] || 0) + 1;
+                    });
+                    gemSummary = Object.entries(gemMap).sort((a,b) => parseInt(b[0]) - parseInt(a[0])).map(([n, c]) => `${n} ${c}개`).join(", ");
                 }
 
                 const row = document.createElement('div');
                 row.className = 'list-row';
                 row.innerHTML = `
-                    <div class="char-info"><span class="char-name">${char.CharacterName}</span><span class="char-class">${char.CharacterClassName}</span></div>
+                    <div class="char-info"><span class="char-name">${char.CharacterName}</span><span style="font-size:0.75rem; color:#888;">${char.CharacterClassName}</span></div>
                     <div>${char.ServerName}</div>
                     <div class="level">${char.ItemAvgLevel}</div>
-                    <div class="gem-box">${gemSummary}</div>
                     <div class="ap-box">${apHtml}</div>
                     <div class="ag-box">${agHtml}</div>
+                    <div class="gem-box"><div class="gem-text">${gemSummary}</div></div>
                 `;
                 listContainer.appendChild(row);
             }
