@@ -104,15 +104,34 @@
                 const agData = await agRes.json();
                 const gData = await gRes.json();
 
-                // 1. 보석 가치
-                let gemScore = 0;
-                if (gData?.Gems) {
-                    gData.Gems.forEach(g => {
-                        const lv = g.Level;
-                        if (g.Name.includes("겁화") || g.Name.includes("멸화")) gemScore += (lv * 1.5);
-                        else gemScore += lv;
-                    });
-                }
+                // 1. 보석 상세 집계 로직
+let gemSummary = "보석 없음";
+if (gData?.Gems && gData.Gems.length > 0) {
+    const gemMap = {}; // { "9레벨 겁화": 4, "10레벨 작열": 7 } 형태
+
+    gData.Gems.forEach(g => {
+        // 이름에서 '겁화', '작열', '멸화', '홍염' 등 종류 추출
+        let type = "보석";
+        if (g.Name.includes("겁화")) type = "겁화";
+        else if (g.Name.includes("작열")) type = "작열";
+        else if (g.Name.includes("멸화")) type = "멸화";
+        else if (g.Name.includes("홍염")) type = "홍염";
+
+        const key = `${g.Level}레벨 ${type}`;
+        gemMap[key] = (gemMap[key] || 0) + 1;
+    });
+
+    // 집계된 데이터를 "9레벨 겁화 4개, 9레벨 작열 7개" 형식으로 변환
+    gemSummary = Object.entries(gemMap)
+        .sort((a, b) => {
+            // 레벨 높은 순으로 먼저 정렬
+            const lvA = parseInt(a[0]);
+            const lvB = parseInt(b[0]);
+            return lvB - lvA;
+        })
+        .map(([name, count]) => `${name} ${count}개`)
+        .join(", ");
+}
 
                 // 2. 아크패시브
                 let apHtml = "비활성화";
