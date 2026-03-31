@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>LOA NTI Dashboard - Final Clean UI</title>
+    <title>LOA NTI Dashboard - Gem Price Fixed</title>
     <style>
         :root { 
             --bg: #121212; --card-bg: #1e1e1e; --border: #333;
@@ -21,7 +21,6 @@
         .max-level-row { border: 2px solid var(--highlight) !important; box-shadow: 0 0 15px rgba(255, 204, 0, 0.2); }
         .char-name { font-weight: 800; color: #fff; font-size: 1rem; }
         
-        /* 툴팁 */
         .db-cp-container { position: relative; cursor: help; text-decoration: underline dotted #666; }
         .tooltip { 
             visibility: hidden; width: 220px; background-color: #333; color: #fff; text-align: center; 
@@ -44,7 +43,7 @@
 <body>
 
 <div class="container">
-    <h1 style="color: #fff; margin-bottom: 25px;">📊 LOA NTI Dashboard <span style="font-size: 0.9rem; color: #666;">(Refined UI)</span></h1>
+    <h1 style="color: #fff; margin-bottom: 25px;">📊 LOA NTI Dashboard <span style="font-size: 0.9rem; color: #666;">(Gem Logic Fixed)</span></h1>
     <div id="tabMenu" class="tabs"></div>
     <div id="tabContents"></div>
 </div>
@@ -62,6 +61,7 @@
         return html.replace(/<[^>]*>?/gm, '').trim(); 
     }
 
+    // 경매장 시세 동기화 (겁화/작열 이름으로만 검색)
     async function backgroundPriceSync() {
         if (priceStatus !== "pending") return;
         priceStatus = "loading";
@@ -80,12 +80,13 @@
                         if (best) globalPrices[`${level}레벨 ${type}`] = best.AuctionInfo.BuyPrice;
                     }
                 } catch (e) {}
-                await new Promise(r => setTimeout(r, 120));
+                await new Promise(r => setTimeout(r, 150));
             }
         }
         priceStatus = "done";
     }
 
+    // 툴팁에서 겁화/작열 태생 판별 (핵심!)
     function getGemOriginType(gem) {
         const tooltip = gem.Tooltip || "";
         if (tooltip.includes("겁화")) return "겁화";
@@ -125,12 +126,12 @@
                 <div id="cp-${charId}" class="loading-dot">...</div>
                 <div class="db-cp-container">
                     <span id="db-cp-${charId}" class="loading-dot">...</span>
-                    <div id="tooltip-${charId}" class="tooltip">데이터 불러오는 중...</div>
+                    <div id="tooltip-${charId}" class="tooltip">데이터 로딩 중...</div>
                 </div>
                 <div id="ap-${charId}" class="loading-dot">...</div>
                 <div id="ag-${charId}" class="loading-dot">...</div>
                 <div class="gem-box">
-                    <div id="gem-txt-${charId}" class="gem-text">로딩 중..</div>
+                    <div id="gem-txt-${charId}" class="gem-text">보석 정보 로딩...</div>
                     <div id="gem-gold-${charId}" class="gold-text">0 G</div>
                 </div>
             `;
@@ -158,55 +159,54 @@
             document.getElementById(`cp-${charId}`).innerText = currentCp.toLocaleString();
             document.getElementById(`db-cp-${charId}`).innerText = currentCp.toLocaleString();
             
-            const updateTime = new Date().toLocaleDateString();
             document.getElementById(`tooltip-${charId}`).innerHTML = `
-                최고 기록일: ${updateTime}<br>
+                기록일: ${new Date().toLocaleDateString()}<br>
                 당시 레벨: ${pData.ItemAvgLevel}<br>
-                현재 대비: 0 (최고치)
+                전투력: ${currentCp.toLocaleString()}
             `;
 
             const apEl = document.getElementById(`ap-${charId}`);
             if (apData?.Points) {
                 apEl.innerHTML = apData.Points.map(p => {
-                    const cleanName = stripHtml(p.Name).substring(0, 2);
+                    const name = stripHtml(p.Name).substring(0, 2);
                     const rank = parseInt((p.Description || "").match(/(\d+)랭크/)?.[1] || 0);
-                    return `<span style="color:${rank < 5 ? 'var(--danger)' : '#fff'}">${cleanName} ${rank}R</span>`;
+                    return `<span style="color:${rank < 5 ? 'var(--danger)' : '#fff'}">${name} ${rank}R</span>`;
                 }).join(" / ");
             } else { apEl.innerText = "비활성"; }
 
             const agEl = document.getElementById(`ag-${charId}`);
             if (agData?.Slots) {
                 agEl.innerHTML = agData.Slots.map(s => `
-                    <div class="grid-item">
-                        <img src="${s.Icon}" class="grid-icon"> ${s.Point}P
-                    </div>
+                    <div class="grid-item"><img src="${s.Icon}" class="grid-icon"> ${s.Point}P</div>
                 `).join("");
             } else { agEl.innerText = "비활성"; }
 
-            // [요청 반영] 보석 출력 정제 로직
+            // [핵심] 보석 가치 합산 로직 (광휘 태생 매칭)
             const updateGems = () => {
                 if (!gData?.Gems) { document.getElementById(`gem-txt-${charId}`).innerText = "정보 없음"; return; }
                 let totalGold = 0; let gemMap = {};
 
                 gData.Gems.forEach(g => {
-                    const origin = getGemOriginType(g);
+                    const origin = getGemOriginType(g); // 툴팁에서 태생(겁화/작열) 확인
                     const isBind = g.Name.includes("귀속");
                     const isGwanghwi = g.Name.includes("광휘");
 
-                    // 가치 계산 (내부적으로 태생 참고)
+                    // [수정] 광휘는 이름과 상관없이 '태생' 시세로 합산
                     if (origin && globalPrices[`${g.Level}레벨 ${origin}`]) {
-                        if (isGwanghwi || !isBind) totalGold += globalPrices[`${g.Level}레벨 ${origin}`];
+                        // 광휘 보석이거나, 일반 보석 중 비귀속인 경우만 골드 합산
+                        if (isGwanghwi || !isBind) {
+                            totalGold += globalPrices[`${g.Level}레벨 ${origin}`];
+                        }
                     }
 
-                    // [요청] 화면 출력용 이름 정제 (태생 삭제, (귀) -> (귀속))
+                    // 출력용 이름 정제 (태생 정보 노출 안 함)
                     let displayName = stripHtml(g.Name).replace(/\(귀속\)/g, "").trim();
                     if (isBind) displayName += " (귀속)";
-                    
                     gemMap[displayName] = (gemMap[displayName] || 0) + 1;
                 });
 
                 document.getElementById(`gem-txt-${charId}`).innerText = Object.entries(gemMap)
-                    .sort((a,b) => b[0].localeCompare(a[0])) // 이름순 정렬
+                    .sort((a,b) => b[0].localeCompare(a[0])) 
                     .map(([n, c]) => `${n} ${c}개`).join(", ");
                 document.getElementById(`gem-gold-${charId}`).innerText = totalGold.toLocaleString() + " G";
                 
