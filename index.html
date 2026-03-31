@@ -2,46 +2,41 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>LOA NTI Dashboard - Professional</title>
+    <title>LOA NTI Dashboard - Advanced</title>
     <style>
         :root { 
             --bg: #121212; --card-bg: #1e1e1e; --border: #333;
-            --text: #e0e0e0; --primary: #4285f4;
-            /* 등급별 색상 (살색=상아색 계열로 조정) */
-            --grade-ancient: #FFE4C4; /* 고대: Bisque(살색/상아색) */
-            --grade-relic: #ff4d4f;   /* 유물: 다홍색 */
-            --grade-legend: #ffc107;  /* 전설: 귤색 */
-            --grade-epic: #a29bfe;    /* 영웅: 보라색 */
-            --grade-default: #00b4d8; /* 일반: 파랑색 */
-            /* 아크패시브 명칭 색상 */
-            --ap-jin: #FFDAB9;  /* 진화: 살색(PeachPuff) */
-            --ap-kkae: #4da3ff; /* 깨달음: 파란색 */
-            --ap-do: #52c41a;   /* 도약: 초록색 */
-            --danger: #ff4d4f;  /* 6R 미만 강조색 */
+            --text: #e0e0e0; --primary: #4285f4; --danger: #ff4d4f;
         }
         body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
-        .container { max-width: 1700px; margin: 0 auto; }
+        .container { max-width: 1800px; margin: 0 auto; }
         
         .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 20px; gap: 5px; }
-        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #2a2a2a; color: #888; border-radius: 8px 8px 0 0; font-weight: 700; transition: 0.3s; }
+        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #2a2a2a; color: #888; border-radius: 8px 8px 0 0; font-weight: 700; }
         .tab-btn.active { background: var(--primary); color: white; }
 
-        /* 리스트 레이아웃 조정 (순서: 캐릭터-서버-레벨-아크패시브-아크그리드-보석) */
-        .list-header { display: grid; grid-template-columns: 180px 100px 100px 320px 300px 1fr; background: #252525; padding: 12px; font-weight: 800; border-bottom: 2px solid var(--border); font-size: 0.9rem; text-align: center; }
-        .list-row { display: grid; grid-template-columns: 180px 100px 100px 320px 300px 1fr; background: var(--card-bg); padding: 15px 12px; border-bottom: 1px solid var(--border); align-items: center; text-align: center; font-size: 0.85rem; }
+        /* 리스트 레이아웃 (전투력/최대 전투력 열 추가) */
+        .list-header, .list-row { 
+            display: grid; 
+            grid-template-columns: 180px 100px 100px 150px 220px 280px 250px 1fr; 
+            gap: 10px; align-items: center; text-align: center; font-size: 0.85rem;
+        }
+        .list-header { background: #252525; padding: 12px; font-weight: 800; border-bottom: 2px solid var(--border); }
+        .list-row { background: var(--card-bg); padding: 15px 12px; border-bottom: 1px solid var(--border); }
         .list-row:hover { background: #2a2a2a; }
 
-        .char-info { text-align: left; padding-left: 10px; }
+        .char-info { text-align: left; }
         .char-name { font-weight: 800; color: #fff; display: block; }
         .level { font-weight: 800; color: var(--primary); }
         
-        .ap-box, .ag-box, .gem-box { text-align: left; padding: 0 10px; }
-        .gem-text { font-size: 0.8rem; line-height: 1.4; color: #bbb; }
-
-        /* 아크그리드 스타일 */
-        .ag-group { margin-bottom: 5px; display: block; border-bottom: 1px hidden #333; }
-        .ag-slot { display: inline-flex; align-items: center; margin-right: 12px; }
-        .ag-icon { width: 16px; height: 16px; margin-right: 4px; border-radius: 2px; }
+        /* 전투력 히스토리 스타일 */
+        .history-tag { cursor: help; border-bottom: 1px dashed #666; color: #aaa; font-size: 0.8rem; margin: 0 2px; }
+        
+        .ap-box, .ag-box, .gem-box { text-align: left; line-height: 1.5; }
+        .ag-group { margin-bottom: 4px; display: block; }
+        .ag-slot { display: inline-flex; align-items: center; margin-right: 10px; }
+        .ag-icon { width: 14px; height: 14px; margin-right: 3px; }
+        .loading { text-align: center; padding: 50px; color: #666; }
     </style>
 </head>
 <body>
@@ -49,11 +44,7 @@
 <div class="container">
     <h1 style="color: #fff; margin-bottom: 25px;">📊 LOA NTI Dashboard</h1>
     <div class="tabs" id="tabMenu"><button class="tab-btn active" onclick="openTab(event, 'NTI')">NTI 전체</button></div>
-    <div id="tabContents">
-        <div id="NTI" class="content active">
-            <div id="NTI-Summary"></div>
-        </div>
-    </div>
+    <div id="tabContents"></div>
 </div>
 
 <script>
@@ -71,11 +62,27 @@
             content.style.display = "none";
             content.innerHTML = `
                 <div class="list-header">
-                    <div>캐릭터</div><div>서버</div><div>레벨</div><div>아크패시브</div><div>아크그리드</div><div>보석 현황</div>
+                    <div>캐릭터</div><div>서버</div><div>레벨</div><div>전투력</div><div>최대 전투력(TOP3)</div><div>아크패시브</div><div>아크그리드</div><div>보석 현황</div>
                 </div>
                 <div id="list-${name}"></div>`;
             container.appendChild(content);
         });
+    }
+
+    // [전투력 히스토리 저장 로직]
+    function updateCombatHistory(charName, currentCP) {
+        const key = `CP_HISTORY_${charName}`;
+        let history = JSON.parse(localStorage.getItem(key)) || [];
+        const now = new Date();
+        const timestamp = `${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+        // 1. 현재 값이 히스토리 중 가장 큰 값보다 크면 갱신
+        if (history.length === 0 || currentCP > history[0].value) {
+            history.unshift({ value: currentCP, time: timestamp });
+            if (history.length > 3) history.pop(); // 최대 3개 유지
+            localStorage.setItem(key, JSON.stringify(history));
+        }
+        return history;
     }
 
     async function openTab(evt, tabName) {
@@ -94,67 +101,58 @@
         try {
             const sibRes = await fetch(`${BASE_URL}/characters/${encodeURIComponent(cName)}/siblings`, { headers });
             const siblings = await sibRes.json();
-            const targets = siblings.filter(c => parseFloat(c.ItemAvgLevel.replace(/,/g, "")) >= 1640).sort((a,b) => parseFloat(b.ItemAvgLevel.replace(/,/g, "")) - parseFloat(a.ItemAvgLevel.replace(/,/g, "")));
+            const targets = siblings.filter(c => parseFloat(c.ItemAvgLevel.replace(/,/g, "")) >= 1640).sort((a,b) => parseFloat(b.ItemAvgLevel.replace(/,/g, "")));
 
             listContainer.innerHTML = "";
             for (const char of targets) {
-                const [apRes, agRes, gRes] = await Promise.all([
+                const [pRes, apRes, agRes, gRes] = await Promise.all([
+                    fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(char.CharacterName)}/profiles`, { headers }),
                     fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(char.CharacterName)}/arkpassive`, { headers }),
                     fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(char.CharacterName)}/arkgrid`, { headers }),
                     fetch(`${BASE_URL}/armories/characters/${encodeURIComponent(char.CharacterName)}/gems`, { headers })
                 ]);
 
+                const pData = await pRes.json();
                 const apData = await apRes.json();
                 const agData = await agRes.json();
                 const gData = await gRes.json();
 
-                // 1. 아크패시브 (색상 지정 및 6R 미만 강조)
+                // 1. 전투력 & 히스토리
+                let cpRaw = pData?.CombatPower || "0";
+                let cpValue = parseInt(String(cpRaw).replace(/,/g, ""));
+                let cpHistory = updateCombatHistory(char.CharacterName, cpValue);
+                let historyHtml = cpHistory.map(h => `<span class="history-tag" title="갱신일시: ${h.time}">${h.value.toLocaleString()}</span>`).join(" ");
+
+                // 2. 아크패시브 (흰색 글씨, 5R 이하만 빨간 볼드)
                 let apHtml = "비활성화";
                 if (apData?.Points) {
                     apHtml = apData.Points.map(p => {
-                        let fName = "진화"; let fColor = "var(--ap-jin)";
-                        if (p.Name.startsWith("깨")) { fName = "깨달음"; fColor = "var(--ap-kkae)"; }
-                        else if (p.Name.startsWith("도")) { fName = "도약"; fColor = "var(--ap-do)"; }
-
-                        const rank = parseInt((p.Description || "").match(/(\d+)랭크/)?.[1] || 0);
-                        let rankStyle = rank < 6 ? `color:var(--danger); font-weight:900;` : `color:var(--text);`;
-                        
-                        return `<span style="color:${fColor}">${fName}</span> <span style="${rankStyle}">${rank}R</span>`;
+                        let fName = p.Name.startsWith("진") ? "진화" : p.Name.startsWith("깨") ? "깨달음" : "도약";
+                        const r = parseInt((p.Description || "").match(/(\d+)랭크/)?.[1] || 0);
+                        let style = r <= 5 ? `color:var(--danger); font-weight:900;` : `color:#fff;`;
+                        return `<span style="${style}">${fName} ${r}R</span>`;
                     }).join(" / ");
                 }
 
-                // 2. 아크그리드 (질서/혼돈 줄바꿈 및 상아색 적용)
+                // 3. 아크그리드 (14P 이하 빨강, 그외 흰색 / 줄바꿈 적용)
                 let agOrder = []; let agChaos = [];
                 if (agData?.Slots) {
                     agData.Slots.forEach(s => {
-                        let fColor = 'var(--grade-default)';
-                        if (s.Grade === "고대") fColor = 'var(--grade-ancient)';
-                        else if (s.Grade === "유물") fColor = 'var(--grade-relic)';
-                        else if (s.Grade === "전설") fColor = 'var(--grade-legend)';
-                        else if (s.Grade === "영웅") fColor = 'var(--grade-epic)';
-                        
-                        const slotHtml = `<div class="ag-slot"><img src="${s.Icon}" class="ag-icon"><span style="color:${fColor}; font-weight:800;">${s.Point}P</span></div>`;
-                        if (s.Name.includes("혼돈")) agChaos.push(slotHtml); else agOrder.push(slotHtml);
+                        let style = s.Point <= 14 ? `color:var(--danger); font-weight:800;` : `color:#fff;`;
+                        const slot = `<div class="ag-slot"><img src="${s.Icon}" class="ag-icon"><span style="${style}">${s.Point}P</span></div>`;
+                        if (s.Name.includes("혼돈")) agChaos.push(slot); else agOrder.push(slot);
                     });
                 }
-                const agHtml = `
-                    <div class="ag-group">${agOrder.join("")}</div>
-                    <div class="ag-group">${agChaos.join("")}</div>
-                `;
+                const agHtml = `<div class="ag-group">${agOrder.join("")}</div><div class="ag-group">${agChaos.join("")}</div>`;
 
-                // 3. 보석 (6레벨 광휘 표기 수정 및 위치 이동)
+                // 4. 보석 (귀속 여부 포함 상세 분류)
                 let gemSummary = "없음";
                 if (gData?.Gems) {
                     const gemMap = {};
                     gData.Gems.forEach(g => {
-                        let type = "";
-                        if (g.Name.includes("겁화")) type = "겁화";
-                        else if (g.Name.includes("작열")) type = "작열";
-                        else if (g.Name.includes("광휘")) type = "광휘";
-                        else if (g.Name.includes("멸화")) type = "멸화";
-                        else if (g.Name.includes("홍염")) type = "홍염";
-                        
-                        const key = `${g.Level}레벨 ${type}`;
+                        let type = g.Name.includes("겁화") ? "겁화" : g.Name.includes("작열") ? "작열" : g.Name.includes("광휘") ? "광휘" : "보석";
+                        let bind = g.Name.includes("귀속") ? "(귀속)" : "";
+                        const key = `${g.Level}레벨 ${type}${bind}`;
                         gemMap[key] = (gemMap[key] || 0) + 1;
                     });
                     gemSummary = Object.entries(gemMap).sort((a,b) => parseInt(b[0]) - parseInt(a[0])).map(([n, c]) => `${n} ${c}개`).join(", ");
@@ -166,13 +164,15 @@
                     <div class="char-info"><span class="char-name">${char.CharacterName}</span><span style="font-size:0.75rem; color:#888;">${char.CharacterClassName}</span></div>
                     <div>${char.ServerName}</div>
                     <div class="level">${char.ItemAvgLevel}</div>
+                    <div style="font-weight:700;">${cpValue.toLocaleString()}</div>
+                    <div style="font-size:0.8rem;">${historyHtml}</div>
                     <div class="ap-box">${apHtml}</div>
                     <div class="ag-box">${agHtml}</div>
-                    <div class="gem-box"><div class="gem-text">${gemSummary}</div></div>
+                    <div class="gem-box" style="font-size:0.8rem; color:#bbb;">${gemSummary}</div>
                 `;
                 listContainer.appendChild(row);
             }
-        } catch (e) { listContainer.innerHTML = "에러 발생"; }
+        } catch (e) { listContainer.innerHTML = "에러 발생"; console.error(e); }
     }
     window.onload = init;
 </script>
